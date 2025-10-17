@@ -1,73 +1,77 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>AXISV Dashboard</title>
-  <style>
-    body{font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a;padding:18px}
-    .card{max-width:960px;margin:20px auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
-    h1{color:#0ea5a4;margin:0 0 8px}
-    table{width:100%;border-collapse:collapse;margin-top:12px}
-    th,td{padding:10px;text-align:left;border-bottom:1px solid #eef2f7}
-    button{background:#0ea5a4;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
-    .controls{display:flex;gap:8px;align-items:center}
-    .small{font-size:0.9rem;color:#6b7280}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AXISV Dashboard</title>
+<style>
+body{font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a;padding:18px}
+.card{max-width:960px;margin:20px auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+h1{color:#0ea5a4;margin:0 0 8px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #eef2f7}
+button{background:#0ea5a4;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+.controls{display:flex;gap:8px;align-items:center}
+.small{font-size:0.9rem;color:#6b7280}
+</style>
 </head>
 <body>
-  <div class="card">
-    <h1>AXISV Dashboard</h1>
-    <p class="small">Public site that reads device data from server.</p>
+<div class="card">
+<h1>AXISV Dashboard</h1>
+<p class="small">Public site that reads device data from server.</p>
 
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div class="controls">
-        <button id="refreshBtn">Refresh</button>
-        <button id="sendTest">Send test</button>
-      </div>
-      <div class="small">Showing latest data</div>
-    </div>
-
-    <table id="dataTable" aria-live="polite">
-      <thead><tr><th>#</th><th>Device</th><th>Value</th><th>Status</th><th>Time</th></tr></thead>
-      <tbody></tbody>
-    </table>
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <div class="controls">
+    <button id="refreshBtn">Refresh</button>
+    <button onclick="sendLED(1)">LED ON</button>
+    <button onclick="sendLED(0)">LED OFF</button>
   </div>
+  <div class="small">Showing latest data</div>
+</div>
 
-  <script>
-    const READ_URL = '/api/read';
-    const POST_URL = '/api/data';
+<table id="dataTable" aria-live="polite">
+<thead><tr><th>#</th><th>Device</th><th>Value</th><th>Status</th><th>Time</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
 
-    async function fetchData() {
-      try {
-        const res = await fetch(READ_URL);
-        if (!res.ok) throw new Error('fetch failed');
-        const rows = await res.json();
-        const tbody = document.querySelector('#dataTable tbody');
-        tbody.innerHTML = '';
-        rows.forEach((r, i) => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${i+1}</td><td>${r.device_id}</td><td>${r.value ?? ''}</td><td>${r.status ?? ''}</td><td>${new Date(r.timestamp).toLocaleString()}</td>`;
-          tbody.appendChild(tr);
-        });
-      } catch (e) {
-        console.error(e);
-        alert('Failed to fetch data: ' + e.message);
-      }
-    }
+<script>
+const READ_URL = '/api/read';
+const POST_URL = '/api/data';
 
-    document.getElementById('refreshBtn').addEventListener('click', fetchData);
-    document.getElementById('sendTest').addEventListener('click', async () => {
-      try {
-        const payload = { device_id: 'WEB_TEST', value: Math.random()*100, status: 'manual' };
-        const res = await fetch(POST_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-        if (!res.ok) throw new Error('post failed');
-        alert('Test data sent');
-        fetchData();
-      } catch(e) { alert('Send failed: '+e.message) }
+async function fetchData() {
+  try {
+    const res = await fetch(READ_URL);
+    if (!res.ok) throw new Error('fetch failed');
+    const rows = await res.json();
+    const tbody = document.querySelector('#dataTable tbody');
+    tbody.innerHTML = '';
+    rows.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i+1}</td><td>${r.device_id}</td><td>${r.value ?? ''}</td><td>${r.status ?? ''}</td><td>${new Date(r.timestamp).toLocaleString()}</td>`;
+      tbody.appendChild(tr);
     });
+  } catch (e) {
+    console.error(e);
+    alert('Failed to fetch data: ' + e.message);
+  }
+}
 
+async function sendLED(value) {
+  try {
+    const payload = { device_id:'ESP32_1', value, status:'LED command' };
+    const res = await fetch(POST_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('post failed');
     fetchData();
-  </script>
+  } catch(e) { alert('Send failed: '+e.message) }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', fetchData);
+fetchData();
+</script>
 </body>
 </html>
