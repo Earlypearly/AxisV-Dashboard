@@ -9,15 +9,22 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { limit = 50 } = req.query;
+    const { limit = 50, device_id } = req.query;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('device_data')
       .select('*')
       .order('timestamp', { ascending: false })
       .limit(Math.min(200, Number(limit)));
 
+    if (device_id) {
+      query = query.eq('device_id', device_id);
+    }
+
+    const { data, error } = await query;
+
     if (error) return res.status(500).json({ error: error.message });
+
     return res.status(200).json(data);
   } catch (err) {
     console.error(err);
