@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ESP32 LED Control & Motion</title>
+  <title>ESP32 LED, Motion & RGB</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -11,9 +11,9 @@
       margin: 0;
     }
     .container {
-      max-width: 400px;
+      max-width: 420px;
       background: white;
-      margin: 56px auto;
+      margin: 54px auto 0 auto;
       padding: 36px 28px 32px 28px;
       border-radius: 18px;
       box-shadow: 0 10px 28px 0 rgba(33, 75, 156, 0.11), 0 2px 4px 0 rgba(33, 75, 156, 0.12);
@@ -24,20 +24,20 @@
     h1 {
       color: #155685;
       font-size: 2rem;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
     .status-group {
-      margin: 32px 0 16px 0;
+      margin: 30px 0 12px 0;
       width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
     }
     .status-card {
       background: #f3faff;
       border-radius: 12px;
       padding: 16px 28px;
-      margin: 0 5px;
       box-shadow: 0 2px 8px 0 rgba(80,120,205,0.04);
       text-align: center;
       font-size: 1.14rem;
@@ -57,8 +57,29 @@
     }
     .motion-detected { color: #ff5722; }
     .motion-clear { color: #2196f3; }
+    .rgb-card {
+      background: #fff8f3;
+      border-radius: 10px;
+      box-shadow: 0 1px 6px 0 rgba(80,120,205,0.06);
+      padding: 13px 19px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      justify-content: center;
+      font-size: 1.07rem;
+    }
+    .rgb-preview {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      box-shadow: 0 1px 3px rgba(80,120,205,0.13);
+      display: inline-block;
+    }
     .ctrl-btn-group {
-      margin-top: 16px;
+      margin-top: 12px;
       display: flex;
       gap: 18px;
     }
@@ -76,18 +97,40 @@
     }
     .on { background: #4CAF50; color: white; }
     .off { background: #f44336; color: white; }
-    .on:hover, .off:hover { filter: brightness(1.18); transform: scale(1.05); }
+    .on:hover, .off:hover { filter: brightness(1.12); transform: scale(1.04); }
     .footer {
       color: #5c6e8f;
       text-align: center;
       margin-top: 24px;
       font-size: 0.95rem;
     }
+    .picker-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0 10px 0;
+    }
+    .picker-label {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #d55b12;
+      margin-bottom: 4px;
+    }
+    input[type="color"] {
+      height: 41px;
+      width: 55px;
+      border: none;
+      margin-left: 7px;
+      cursor: pointer;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px 0 rgba(80,120,205,0.12);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>ESP32 LED Controller</h1>
+    <h1>ESP32 LED, Motion & RGB</h1>
     <div class="status-group">
       <div class="status-card">
         <span id="ledIcon" class="led-icon led-off">&#128161;</span>
@@ -98,18 +141,38 @@
         <span id="motionTxt">CLEAR</span>
       </div>
     </div>
+    <div class="rgb-card">
+      <b style="margin-right:8px;">RGB</b>
+      <span id="rgbPreview" class="rgb-preview" style="background:#000;"></span>
+    </div>
+    <div class="picker-box">
+      <span class="picker-label">Pick Color:</span>
+      <input id="colorPicker" type="color" value="#000000" onchange="setColor(this.value)">
+    </div>
     <div class="ctrl-btn-group">
       <button class="on" onclick="setState(true)">Turn ON</button>
       <button class="off" onclick="setState(false)">Turn OFF</button>
     </div>
-    <div class="footer">Status updates every 2 seconds.</div>
+    <div class="footer">All data live via Supabase · Updates every 2 seconds.</div>
   </div>
   <script>
     const supaUrl = 'https://kvavhykbqpndnaajbdqv.supabase.co';
     const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YXZoeWticXBuZG5hYWpiZHF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDcwNTE4NCwiZXhwIjoyMDc2MjgxMTg0fQ.hkQiPU2pFgvsmmpO9L7xJVS_2bLV66WbUgI9S9OmBUs';
 
+    function rgbToHex(r,g,b) {
+      return "#" + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+    }
+    function rgbSplit(hex) {
+      let c = hex.replace("#","");
+      return [
+        parseInt(c.substring(0,2),16),
+        parseInt(c.substring(2,4),16),
+        parseInt(c.substring(4,6),16)
+      ];
+    }
+
     async function fetchState() {
-      const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state,motion_detected`;
+      const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state,motion_detected,red,green,blue`;
       try {
         const res = await fetch(url, {
           headers: {
@@ -121,17 +184,24 @@
         if (Array.isArray(data) && data.length > 0) {
           const led = data[0].state;
           const motion = data[0].motion_detected;
+          const r = data[0].red || 0, g = data[0].green || 0, b = data[0].blue || 0;
           document.getElementById('stateTxt').innerText = led ? 'LED ON' : 'LED OFF';
           document.getElementById('ledIcon').className = led ? 'led-icon led-on' : 'led-icon led-off';
           document.getElementById('motionTxt').innerText = motion ? 'DETECTED' : 'CLEAR';
           document.getElementById('motionIcon').className = motion ? 'motion-icon motion-detected' : 'motion-icon motion-clear';
+          document.getElementById('rgbPreview').style.background = rgbToHex(r,g,b);
+          document.getElementById('colorPicker').value = rgbToHex(r,g,b);
         } else {
           document.getElementById('stateTxt').innerText = 'No DATA';
           document.getElementById('motionTxt').innerText = 'No DATA';
+          document.getElementById('rgbPreview').style.background = "#000";
+          document.getElementById('colorPicker').value = "#000000";
         }
       } catch (e) {
         document.getElementById('stateTxt').innerText = 'Fetch Error';
         document.getElementById('motionTxt').innerText = 'Fetch Error';
+        document.getElementById('rgbPreview').style.background = "#000";
+        document.getElementById('colorPicker').value = "#000000";
       }
     }
 
@@ -145,6 +215,22 @@
           Authorization: 'Bearer ' + supaKey
         },
         body: JSON.stringify({ state: val })
+      });
+      fetchState();
+    }
+
+    async function setColor(hex) {
+      let [r,g,b] = rgbSplit(hex);
+      document.getElementById('rgbPreview').style.background = hex;
+      const url = `${supaUrl}/rest/v1/led?id=eq.1`;
+      await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supaKey,
+          Authorization: 'Bearer ' + supaKey
+        },
+        body: JSON.stringify({ red: r, green: g, blue: b })
       });
       fetchState();
     }
