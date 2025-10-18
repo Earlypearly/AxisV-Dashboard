@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 LED Control & Motion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; background: #f0f0f0; }
+    h1 { color: #333; }
+    button { padding: 20px; font-size: 18px; margin: 10px; border: none; border-radius: 5px; color: white; cursor: pointer; }
+    .on { background: #4CAF50; }
+    .off { background: #f44336; }
+    .status { margin-top: 20px; font-size: 20px; }
+    .motion { margin-top: 16px; font-size: 18px; color: #005a99; }
+  </style>
+</head>
+<body>
+  <h1>ESP32 LED Controller & Motion Monitor</h1>
+  <p class="status">LED is <span id="state">?</span></p>
+  <button class="on" onclick="setState(true)">Turn ON</button>
+  <button class="off" onclick="setState(false)">Turn OFF</button>
+  <p class="motion">Motion status: <span id="motion">?</span></p>
+  <script>
+    const supaUrl = 'https://kvavhykbqpndnaajbdqv.supabase.co';
+    const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YXZoeWticXBuZG5hYWpiZHF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDcwNTE4NCwiZXhwIjoyMDc2MjgxMTg0fQ.hkQiPU2pFgvsmmpO9L7xJVS_2bLV66WbUgI9S9OmBUs';
+
+    async function fetchState() {
+      const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state,motion_detected`;
+      try {
+        const res = await fetch(url, {
+          headers: {
+            apikey: supaKey,
+            Authorization: 'Bearer ' + supaKey
+          }
+        });
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          document.getElementById('state').innerText = data[0].state ? 'ON' : 'OFF';
+          document.getElementById('motion').innerText = data[0].motion_detected ? 'DETECTED' : 'CLEAR';
+        } else {
+          document.getElementById('state').innerText = 'No DATA';
+          document.getElementById('motion').innerText = 'No DATA';
+        }
+      } catch (e) {
+        document.getElementById('state').innerText = 'Fetch Error';
+        document.getElementById('motion').innerText = 'Fetch Error';
+      }
+    }
+
+    async function setState(val) {
+      const url = `${supaUrl}/rest/v1/led?id=eq.1`;
+      await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supaKey,
+          Authorization: 'Bearer ' + supaKey
+        },
+        body: JSON.stringify({ state: val })
+      });
+      fetchState();
+    }
+
+    fetchState();
+    setInterval(fetchState, 2000);
+  </script>
+</body>
+</html>
