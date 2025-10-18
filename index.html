@@ -4,21 +4,106 @@
   <title>ESP32 LED Control & Motion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 50px; background: #f0f0f0; }
-    h1 { color: #333; }
-    button { padding: 20px; font-size: 18px; margin: 10px; border: none; border-radius: 5px; color: white; cursor: pointer; }
-    .on { background: #4CAF50; }
-    .off { background: #f44336; }
-    .status { margin-top: 20px; font-size: 20px; }
-    .motion { margin-top: 16px; font-size: 18px; color: #005a99; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e1e8f0 0%, #dde6ed 100%);
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 400px;
+      background: white;
+      margin: 56px auto;
+      padding: 36px 28px 32px 28px;
+      border-radius: 18px;
+      box-shadow: 0 10px 28px 0 rgba(33, 75, 156, 0.11), 0 2px 4px 0 rgba(33, 75, 156, 0.12);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #155685;
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    .status-group {
+      margin: 32px 0 16px 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-card {
+      background: #f3faff;
+      border-radius: 12px;
+      padding: 16px 28px;
+      margin: 0 5px;
+      box-shadow: 0 2px 8px 0 rgba(80,120,205,0.04);
+      text-align: center;
+      font-size: 1.14rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .led-icon {
+      font-size: 2.3rem;
+      transition: color 0.2s;
+    }
+    .led-on { color: #4CAF50; }
+    .led-off { color: #a0a0a0; }
+    .motion-icon {
+      font-size: 2.3rem;
+      transition: color 0.2s;
+    }
+    .motion-detected { color: #ff5722; }
+    .motion-clear { color: #2196f3; }
+    .ctrl-btn-group {
+      margin-top: 16px;
+      display: flex;
+      gap: 18px;
+    }
+    button {
+      padding: 14px 34px;
+      font-size: 1.05rem;
+      border: none;
+      outline: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(130,150,210,.09);
+      font-weight: 500;
+      transition: background 0.2s, transform 0.14s;
+      margin-bottom: 2px;
+    }
+    .on { background: #4CAF50; color: white; }
+    .off { background: #f44336; color: white; }
+    .on:hover, .off:hover { filter: brightness(1.18); transform: scale(1.05); }
+    .footer {
+      color: #5c6e8f;
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
 <body>
-  <h1>ESP32 LED Controller & Motion Monitor</h1>
-  <p class="status">LED is <span id="state">?</span></p>
-  <button class="on" onclick="setState(true)">Turn ON</button>
-  <button class="off" onclick="setState(false)">Turn OFF</button>
-  <p class="motion">Motion status: <span id="motion">?</span></p>
+  <div class="container">
+    <h1>ESP32 LED Controller</h1>
+    <div class="status-group">
+      <div class="status-card">
+        <span id="ledIcon" class="led-icon led-off">&#128161;</span>
+        <span id="stateTxt">LED OFF</span>
+      </div>
+      <div class="status-card">
+        <span id="motionIcon" class="motion-icon motion-clear">&#128256;</span>
+        <span id="motionTxt">CLEAR</span>
+      </div>
+    </div>
+    <div class="ctrl-btn-group">
+      <button class="on" onclick="setState(true)">Turn ON</button>
+      <button class="off" onclick="setState(false)">Turn OFF</button>
+    </div>
+    <div class="footer">Status updates every 2 seconds.</div>
+  </div>
   <script>
     const supaUrl = 'https://kvavhykbqpndnaajbdqv.supabase.co';
     const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YXZoeWticXBuZG5hYWpiZHF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDcwNTE4NCwiZXhwIjoyMDc2MjgxMTg0fQ.hkQiPU2pFgvsmmpO9L7xJVS_2bLV66WbUgI9S9OmBUs';
@@ -34,15 +119,19 @@
         });
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          document.getElementById('state').innerText = data[0].state ? 'ON' : 'OFF';
-          document.getElementById('motion').innerText = data[0].motion_detected ? 'DETECTED' : 'CLEAR';
+          const led = data[0].state;
+          const motion = data[0].motion_detected;
+          document.getElementById('stateTxt').innerText = led ? 'LED ON' : 'LED OFF';
+          document.getElementById('ledIcon').className = led ? 'led-icon led-on' : 'led-icon led-off';
+          document.getElementById('motionTxt').innerText = motion ? 'DETECTED' : 'CLEAR';
+          document.getElementById('motionIcon').className = motion ? 'motion-icon motion-detected' : 'motion-icon motion-clear';
         } else {
-          document.getElementById('state').innerText = 'No DATA';
-          document.getElementById('motion').innerText = 'No DATA';
+          document.getElementById('stateTxt').innerText = 'No DATA';
+          document.getElementById('motionTxt').innerText = 'No DATA';
         }
       } catch (e) {
-        document.getElementById('state').innerText = 'Fetch Error';
-        document.getElementById('motion').innerText = 'Fetch Error';
+        document.getElementById('stateTxt').innerText = 'Fetch Error';
+        document.getElementById('motionTxt').innerText = 'Fetch Error';
       }
     }
 
