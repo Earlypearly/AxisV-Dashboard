@@ -19,32 +19,45 @@
   <button class="off" onclick="setState(false)">Turn OFF</button>
 
   <script>
-    const host  = 'https://esp32-989de-default-rtdb.asia-southeast1.firebasedatabase.app';
-    const auth  = 'U4P5PC9EwjgG4Ea3H6yznljQPix9ZchFrxYAI3Pp';
+    const supaUrl = 'https://kvavhykbqpndnaajbdqv.supabase.co';
+    const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YXZoeWticXBuZG5hYWpiZHF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDcwNTE4NCwiZXhwIjoyMDc2MjgxMTg0fQ.hkQiPU2pFgvsmmpO9L7xJVS_2bLV66WbUgI9S9OmBUs';
 
-    // Update UI from database
-    function fetchState() {
-      fetch(`${host}/LED/state.json?auth=${auth}`)
-        .then(r=>r.text())
-        .then(t=>{
-          const s = t.trim()==='true';
-          document.getElementById('state').innerText = s?'ON':'OFF';
-        });
+    // Read LED state from Supabase
+    async function fetchState() {
+      const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: supaKey,
+          Authorization: 'Bearer ' + supaKey
+        }
+      });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const state = data[0].state;
+        document.getElementById('state').innerText = state ? 'ON' : 'OFF';
+      } else {
+        document.getElementById('state').innerText = 'Error';
+      }
     }
 
-    // Write new state
-    function setState(val) {
-      fetch(`${host}/LED/state.json?auth=${auth}`, {
-        method: 'PUT',
-        headers: {'Content-Type':'application/json'},
-        body: val?'true':'false'
-      }).then(fetchState);
+    // Write new state to Supabase
+    async function setState(val) {
+      const url = `${supaUrl}/rest/v1/led?id=eq.1`;
+      await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supaKey,
+          Authorization: 'Bearer ' + supaKey
+        },
+        body: JSON.stringify({ state: val })
+      });
+      fetchState();
     }
 
-    // Initial load
+    // Initial load and periodic polling
     fetchState();
-    // Poll every 2 seconds in case LED changed elsewhere
-    setInterval(fetchState,2000);
+    setInterval(fetchState, 2000);
   </script>
 </body>
 </html>
