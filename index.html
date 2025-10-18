@@ -40,10 +40,10 @@
       }
     }
 
-    // Write new state to Supabase
+        // Write new state to Supabase, improved logging!
     async function setState(val) {
       const url = `${supaUrl}/rest/v1/led?id=eq.1`;
-      await fetch(url, {
+      const res = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -52,8 +52,11 @@
         },
         body: JSON.stringify({ state: val })
       });
+      const text = await res.text();
+      alert(`PATCH status: ${res.status}\nResponse: ${text}`);
       fetchState();
     }
+
 
     // Initial load and periodic polling
     fetchState();
