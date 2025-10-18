@@ -1,77 +1,70 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>AXISV Dashboard</title>
-<style>
-body{font-family:Inter,Arial,sans-serif;background:#f4f7fb;color:#0f172a;padding:18px}
-.card{max-width:960px;margin:20px auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06)}
-h1{color:#0ea5a4;margin:0 0 8px}
-table{width:100%;border-collapse:collapse;margin-top:12px}
-th,td{padding:10px;text-align:left;border-bottom:1px solid #eef2f7}
-button{background:#0ea5a4;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
-.controls{display:flex;gap:8px;align-items:center}
-.small{font-size:0.9rem;color:#6b7280}
-</style>
+  <title>ESP32 LED Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background-color: #f0f0f0;
+    }
+    h1 { color: #333; }
+    .button {
+      padding: 20px 40px;
+      font-size: 24px;
+      margin: 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      transition: 0.3s;
+    }
+    .button-on { background-color: #4CAF50; }
+    .button-on:hover { background-color: #45a049; }
+    .button-off { background-color: #f44336; }
+    .button-off:hover { background-color: #da190b; }
+    .status {
+      margin-top: 30px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-<div class="card">
-<h1>AXISV Dashboard</h1>
-<p class="small">Public site that reads device data from server.</p>
+  <h1>ESP32 LED Controller</h1>
+  <p class="status">LED Status: <span id="state">OFF</span></p>
+  
+  <button class="button button-on" onclick="setLED(true)">Turn ON</button>
+  <button class="button button-off" onclick="setLED(false)">Turn OFF</button>
 
-<div style="display:flex;justify-content:space-between;align-items:center">
-  <div class="controls">
-    <button id="refreshBtn">Refresh</button>
-    <button onclick="sendLED(1)">LED ON</button>
-    <button onclick="sendLED(0)">LED OFF</button>
-  </div>
-  <div class="small">Showing latest data</div>
-</div>
+  <script type="module">
+    // Import Firebase
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-<table id="dataTable" aria-live="polite">
-<thead><tr><th>#</th><th>Device</th><th>Value</th><th>Status</th><th>Time</th></tr></thead>
-<tbody></tbody>
-</table>
-</div>
+    // Your Firebase configuration
+    const firebaseConfig = {
+      databaseURL: "https://esp32-989de-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
 
-<script>
-const READ_URL = '/api/read';
-const POST_URL = '/api/data';
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const ledRef = ref(database, 'LED/state');
 
-async function fetchData() {
-  try {
-    const res = await fetch(READ_URL);
-    if (!res.ok) throw new Error('fetch failed');
-    const rows = await res.json();
-    const tbody = document.querySelector('#dataTable tbody');
-    tbody.innerHTML = '';
-    rows.forEach((r, i) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${i+1}</td><td>${r.device_id}</td><td>${r.value ?? ''}</td><td>${r.status ?? ''}</td><td>${new Date(r.timestamp).toLocaleString()}</td>`;
-      tbody.appendChild(tr);
+    // Listen for LED state changes
+    onValue(ledRef, (snapshot) => {
+      const state = snapshot.val();
+      document.getElementById('state').innerText = state ? 'ON' : 'OFF';
+      document.getElementById('state').style.color = state ? '#4CAF50' : '#f44336';
     });
-  } catch (e) {
-    console.error(e);
-    alert('Failed to fetch data: ' + e.message);
-  }
-}
 
-async function sendLED(value) {
-  try {
-    const payload = { device_id:'ESP32_1', value, status:'LED command' };
-    const res = await fetch(POST_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error('post failed');
-    fetchData();
-  } catch(e) { alert('Send failed: '+e.message) }
-}
-
-document.getElementById('refreshBtn').addEventListener('click', fetchData);
-fetchData();
-</script>
+    // Make setLED available globally
+    window.setLED = function(state) {
+      set(ledRef, state);
+    };
+  </script>
 </body>
 </html>
