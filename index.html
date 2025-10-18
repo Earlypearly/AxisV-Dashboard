@@ -4,67 +4,47 @@
   <title>ESP32 LED Control</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-      background-color: #f0f0f0;
-    }
+    body { font-family: Arial; text-align: center; margin-top: 50px; background: #f0f0f0; }
     h1 { color: #333; }
-    .button {
-      padding: 20px 40px;
-      font-size: 24px;
-      margin: 10px;
-      cursor: pointer;
-      border: none;
-      border-radius: 10px;
-      color: white;
-      transition: 0.3s;
-    }
-    .button-on { background-color: #4CAF50; }
-    .button-on:hover { background-color: #45a049; }
-    .button-off { background-color: #f44336; }
-    .button-off:hover { background-color: #da190b; }
-    .status {
-      margin-top: 30px;
-      font-size: 20px;
-      font-weight: bold;
-    }
+    button { padding: 20px; font-size: 18px; margin: 10px; border: none; border-radius: 5px; color: white; cursor: pointer; }
+    .on { background: #4CAF50; }
+    .off { background: #f44336; }
+    .status { margin-top: 20px; font-size: 20px; }
   </style>
 </head>
 <body>
   <h1>ESP32 LED Controller</h1>
-  <p class="status">LED Status: <span id="state">OFF</span></p>
-  
-  <button class="button button-on" onclick="setLED(true)">Turn ON</button>
-  <button class="button button-off" onclick="setLED(false)">Turn OFF</button>
+  <p class="status">LED is <span id="state">?</span></p>
+  <button class="on" onclick="setState(true)">Turn ON</button>
+  <button class="off" onclick="setState(false)">Turn OFF</button>
 
-  <script type="module">
-    // Import Firebase
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+  <script>
+    const host  = 'https://esp32-989de-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const auth  = 'U4P5PC9EwjgG4Ea3H6yznljQPix9ZchFrxYAI3Pp';
 
-    // Your Firebase configuration
-    const firebaseConfig = {
-      databaseURL: "https://esp32-989de-default-rtdb.asia-southeast1.firebasedatabase.app/"
-    };
+    // Update UI from database
+    function fetchState() {
+      fetch(`${host}/LED/state.json?auth=${auth}`)
+        .then(r=>r.text())
+        .then(t=>{
+          const s = t.trim()==='true';
+          document.getElementById('state').innerText = s?'ON':'OFF';
+        });
+    }
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-    const ledRef = ref(database, 'LED/state');
+    // Write new state
+    function setState(val) {
+      fetch(`${host}/LED/state.json?auth=${auth}`, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: val?'true':'false'
+      }).then(fetchState);
+    }
 
-    // Listen for LED state changes
-    onValue(ledRef, (snapshot) => {
-      const state = snapshot.val();
-      document.getElementById('state').innerText = state ? 'ON' : 'OFF';
-      document.getElementById('state').style.color = state ? '#4CAF50' : '#f44336';
-    });
-
-    // Make setLED available globally
-    window.setLED = function(state) {
-      set(ledRef, state);
-    };
+    // Initial load
+    fetchState();
+    // Poll every 2 seconds in case LED changed elsewhere
+    setInterval(fetchState,2000);
   </script>
 </body>
 </html>
