@@ -10,7 +10,6 @@
     .on { background: #4CAF50; }
     .off { background: #f44336; }
     .status { margin-top: 20px; font-size: 20px; }
-    pre { margin-top: 20px; background: #222; color: #eee; padding: 15px; text-align: left; width: 70vw; margin-left: auto; margin-right: auto; border-radius: 6px;}
   </style>
 </head>
 <body>
@@ -18,13 +17,11 @@
   <p class="status">LED is <span id="state">?</span></p>
   <button class="on" onclick="setState(true)">Turn ON</button>
   <button class="off" onclick="setState(false)">Turn OFF</button>
-  <pre id="debug"></pre>
   <script>
-    // Update these two lines with your credentials
+    // These must be changed to your actual Supabase values
     const supaUrl = 'https://kvavhykbqpndnaajbdqv.supabase.co';
     const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YXZoeWticXBuZG5hYWpiZHF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDcwNTE4NCwiZXhwIjoyMDc2MjgxMTg0fQ.hkQiPU2pFgvsmmpO9L7xJVS_2bLV66WbUgI9S9OmBUs';
 
-    // Read LED state from Supabase
     async function fetchState() {
       const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state`;
       try {
@@ -34,15 +31,7 @@
             Authorization: 'Bearer ' + supaKey
           }
         });
-        const text = await res.text();
-        document.getElementById('debug').innerText = `GET response (${res.status}):\n${text}`;
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch(e) {
-          document.getElementById('state').innerText = 'Parse Error';
-          return;
-        }
+        const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           const state = data[0].state;
           document.getElementById('state').innerText = state ? 'ON' : 'OFF';
@@ -50,33 +39,24 @@
           document.getElementById('state').innerText = 'No DATA';
         }
       } catch (e) {
-        document.getElementById('debug').innerText = 'Fetch Error: ' + e;
-        document.getElementById('state').innerText = 'Fetch Err';
+        document.getElementById('state').innerText = 'Fetch Error';
       }
     }
 
-    // Write new state to Supabase, with feedback!
     async function setState(val) {
       const url = `${supaUrl}/rest/v1/led?id=eq.1`;
-      try {
-        const res = await fetch(url, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: supaKey,
-            Authorization: 'Bearer ' + supaKey
-          },
-          body: JSON.stringify({ state: val })
-        });
-        const text = await res.text();
-        document.getElementById('debug').innerText = `PATCH response (${res.status}):\n${text}`;
-        fetchState();
-      } catch (e) {
-        document.getElementById('debug').innerText = 'PATCH Error: ' + e;
-      }
+      await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supaKey,
+          Authorization: 'Bearer ' + supaKey
+        },
+        body: JSON.stringify({ state: val })
+      });
+      fetchState();
     }
 
-    // Initial load and periodic polling
     fetchState();
     setInterval(fetchState, 2000);
   </script>
