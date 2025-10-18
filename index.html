@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<<<<<<< HEAD
   <title>ESP32 LED Control & Motion</title>
-=======
-  <title>ESP32 LED Control</title>
->>>>>>> f0fd994e9384b3bd8d5d0f0701ccb89b6b1eafc4
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: Arial; text-align: center; margin-top: 50px; background: #f0f0f0; }
@@ -14,7 +10,6 @@
     .on { background: #4CAF50; }
     .off { background: #f44336; }
     .status { margin-top: 20px; font-size: 20px; }
-<<<<<<< HEAD
     .motion { margin-top: 16px; font-size: 18px; color: #005a99; }
   </style>
 </head>
@@ -25,26 +20,11 @@
   <button class="off" onclick="setState(false)">Turn OFF</button>
   <p class="motion">Motion status: <span id="motion">?</span></p>
   <script>
-=======
-  </style>
-</head>
-<body>
-  <h1>ESP32 LED Controller</h1>
-  <p class="status">LED is <span id="state">?</span></p>
-  <button class="on" onclick="setState(true)">Turn ON</button>
-  <button class="off" onclick="setState(false)">Turn OFF</button>
-  <script>
-    // These must be changed to your actual Supabase values
->>>>>>> f0fd994e9384b3bd8d5d0f0701ccb89b6b1eafc4
     const supaUrl = 'https://kvavhykbqpndnaajbdqv.supabase.co';
     const supaKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YXZoeWticXBuZG5hYWpiZHF2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDcwNTE4NCwiZXhwIjoyMDc2MjgxMTg0fQ.hkQiPU2pFgvsmmpO9L7xJVS_2bLV66WbUgI9S9OmBUs';
 
     async function fetchState() {
-<<<<<<< HEAD
       const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state,motion_detected`;
-=======
-      const url = `${supaUrl}/rest/v1/led?id=eq.1&select=state`;
->>>>>>> f0fd994e9384b3bd8d5d0f0701ccb89b6b1eafc4
       try {
         const res = await fetch(url, {
           headers: {
@@ -54,7 +34,6 @@
         });
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-<<<<<<< HEAD
           document.getElementById('state').innerText = data[0].state ? 'ON' : 'OFF';
           document.getElementById('motion').innerText = data[0].motion_detected ? 'DETECTED' : 'CLEAR';
         } else {
@@ -64,15 +43,6 @@
       } catch (e) {
         document.getElementById('state').innerText = 'Fetch Error';
         document.getElementById('motion').innerText = 'Fetch Error';
-=======
-          const state = data[0].state;
-          document.getElementById('state').innerText = state ? 'ON' : 'OFF';
-        } else {
-          document.getElementById('state').innerText = 'No DATA';
-        }
-      } catch (e) {
-        document.getElementById('state').innerText = 'Fetch Error';
->>>>>>> f0fd994e9384b3bd8d5d0f0701ccb89b6b1eafc4
       }
     }
 
